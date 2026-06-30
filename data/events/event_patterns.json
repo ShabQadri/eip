@@ -1,0 +1,48 @@
+{
+  "PRODUCTION_START": [
+    "begins filming",
+    "starts production",
+    "cameras roll",
+    "enters production"
+  ],
+  "TRAILER": [
+    "trailer released",
+    "teaser released",
+    "first trailer",
+    "first look",
+    "poster",
+    "motion poster",
+    "character poster"
+  ],
+  "RELEASE_DATE": [
+    "release date",
+    "premiere date",
+    "streaming date"
+  ],
+  "RENEWAL": [
+    "renewed",
+    "returns for season",
+    "picked up for season",
+    "gets season",
+    "season confirmed"
+  ],
+  "CASTING": [
+    "joins cast",
+    "cast as",
+    "to star in",
+    "added to cast",
+    "boards"
+  ],
+  "AWARDS": [
+    "wins",
+    "won",
+    "nominated",
+    "nomination",
+    "academy award",
+    "oscar",
+    "emmy",
+    "golden globe",
+    "national award",
+    "filmfare"
+  ]
+}

@@ -1,0 +1,135 @@
+[
+  {
+    "name": "Variety",
+    "rss_url": "https://variety.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Deadline",
+    "rss_url": "https://deadline.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "The Hollywood Reporter",
+    "rss_url": "https://www.hollywoodreporter.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Empire",
+    "rss_url": "https://www.empireonline.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Collider",
+    "rss_url": "https://collider.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "SlashFilm",
+    "rss_url": "https://www.slashfilm.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 2,
+    "enabled": true
+  },
+  {
+    "name": "IndieWire",
+    "rss_url": "https://www.indiewire.com/feed/",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Screen Daily",
+    "rss_url": "https://www.screendaily.com/xml/rss/104.xml",
+    "region": "GLOBAL",
+    "source_tier": 2,
+    "enabled": true
+  },
+  {
+    "name": "Film Companion",
+    "rss_url": "https://www.filmcompanion.in/feed",
+    "region": "INDIA",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "OTTplay",
+    "rss_url": "https://www.ottplay.com/feed/rss",
+    "region": "INDIA",
+    "source_tier": 2,
+    "enabled": true
+  },
+  {
+    "name": "123telugu",
+    "rss_url": "https://www.123telugu.com/feed",
+    "region": "INDIA",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "TrackTollywood",
+    "rss_url": "https://tracktollywood.com/feed/",
+    "region": "INDIA",
+    "source_tier": 2,
+    "enabled": true
+  },
+  {
+    "name": "Behindwoods",
+    "rss_url": "https://www.behindwoods.com/rss/behindwoods-news-tamil.xml",
+    "region": "INDIA",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Behindwoods Telugu",
+    "rss_url": "https://www.behindwoods.com/rss/behindwoods-news-telugu.xml",
+    "region": "INDIA",
+    "source_tier": 2,
+    "enabled": true
+  },
+  {
+    "name": "Anime News Network",
+    "rss_url": "https://www.animenewsnetwork.com/news/rss.xml",
+    "region": "ANIME",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Crunchyroll News",
+    "rss_url": "https://www.crunchyroll.com/news/rss",
+    "region": "ANIME",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Netflix Tudum",
+    "rss_url": "https://www.netflix.com/tudum/articles/feed",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Marvel News",
+    "rss_url": "https://www.marvel.com/feeds/r_news.xml",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  },
+  {
+    "name": "Star Wars News",
+    "rss_url": "https://www.starwars.com/news/feed",
+    "region": "GLOBAL",
+    "source_tier": 1,
+    "enabled": true
+  }
+]

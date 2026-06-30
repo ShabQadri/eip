@@ -1,0 +1,30 @@
+{
+  "Marvel": {
+    "keywords": ["marvel", "mcu", "avengers", "spiderman", "iron man", "thor"],
+    "region": "HOLLYWOOD"
+  },
+  "DC": {
+    "keywords": ["dc", "dcu", "batman", "superman", "joker", "wonder woman"],
+    "region": "HOLLYWOOD"
+  },
+  "Star Wars": {
+    "keywords": ["star wars", "mandalorian", "jedi", "sith", "skywalker"],
+    "region": "HOLLYWOOD"
+  },
+  "Dune": {
+    "keywords": ["dune", "arrakis", "atreides", "harkonnen"],
+    "region": "HOLLYWOOD"
+  },
+  "YRF Spy Universe": {
+    "keywords": ["yrf spy", "pathaan", "tiger 3", "war 2", "alpha"],
+    "region": "INDIA"
+  },
+  "Lokesh Cinematic Universe": {
+    "keywords": ["lokesh", "lcu", "leo", "vikram", "kaithi", "coolie"],
+    "region": "INDIA"
+  },
+  "SSMB29": {
+    "keywords": ["ssmb29", "ssmb 29", "mahesh babu 29", "rajamouli"],
+    "region": "INDIA"
+  }
+}

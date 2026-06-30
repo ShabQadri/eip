@@ -1,0 +1,20 @@
+{
+  "variety.com": "SUMMARY_ALLOWED",
+  "deadline.com": "SUMMARY_ALLOWED",
+  "hollywoodreporter.com": "SUMMARY_ALLOWED",
+  "empireonline.com": "SUMMARY_ALLOWED",
+  "collider.com": "SUMMARY_ALLOWED",
+  "slashfilm.com": "HEADLINE_ONLY",
+  "indiewire.com": "SUMMARY_ALLOWED",
+  "screendaily.com": "SUMMARY_ALLOWED",
+  "filmcompanion.in": "SUMMARY_ALLOWED",
+  "ottplay.com": "SUMMARY_ALLOWED",
+  "123telugu.com": "SUMMARY_ALLOWED",
+  "tracktollywood.com": "SUMMARY_ALLOWED",
+  "behindwoods.com": "SUMMARY_ALLOWED",
+  "animenewsnetwork.com": "SUMMARY_ALLOWED",
+  "crunchyroll.com": "SUMMARY_ALLOWED",
+  "netflix.com": "SUMMARY_ALLOWED",
+  "marvel.com": "SUMMARY_ALLOWED",
+  "starwars.com": "SUMMARY_ALLOWED"
+}
