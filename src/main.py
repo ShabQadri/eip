@@ -56,5 +56,19 @@ def main() -> None:
     # 6. Print startup message
     print("Entertainment Intelligence Platform initialized.")
 
+    # 7. Start background scheduler
+    from src.services.scheduler_service import SchedulerService
+    scheduler = SchedulerService()
+    scheduler.start()
+
+    # 8. Block main thread to keep background daemon running
+    import time
+    try:
+        while True:
+            time.sleep(1)
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Shutdown signal received. Stopping scheduler...")
+        scheduler.shutdown()
+
 if __name__ == "__main__":
     main()
