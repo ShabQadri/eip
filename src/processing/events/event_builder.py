@@ -138,7 +138,17 @@ class EventBuilder:
             source_domains_json=[domain],
             event_pattern=event_pattern,
             season_number=season_number,
-            event_year=event_year
+            event_year=event_year,
+            first_reported_at=pub_at,
+            last_updated_at=pub_at,
+            tmdb_id=None,
+            event_history_json=[{
+                "action": "create",
+                "timestamp": pub_at.isoformat(),
+                "article_id": article.id,
+                "title": article.title,
+                "source": domain
+            }]
         )
 
         db.add(event)
@@ -164,8 +174,10 @@ class EventBuilder:
 
         if evt_first is None or pub_at < evt_first:
             event.first_article_at = pub_at
+            event.first_reported_at = pub_at
         if evt_last is None or pub_at > evt_last:
             event.last_article_at = pub_at
+            event.last_updated_at = pub_at
 
         # Update domain tracking
         domain = self._get_source_domain(db, article)
@@ -182,6 +194,18 @@ class EventBuilder:
             clean_art_title not in aliases):
             aliases.append(clean_art_title)
             event.aliases_json = aliases
+
+        # Update event history
+        history = list(event.event_history_json or [])
+        history.append({
+            "action": "update",
+            "timestamp": pub_at.isoformat(),
+            "article_id": article.id,
+            "title": article.title,
+            "source": domain,
+            "relationship": getattr(article, "event_relationship", None)
+        })
+        event.event_history_json = history
 
         # Update status
         full_text = f"{article.title} {article.description or ''}"

@@ -130,6 +130,113 @@ class TelegramService:
 
         return res
 
+    async def _send_photo_async(self, photo_url: str, caption: str) -> dict:
+        if not self.bot_token or not self.channel_id:
+            logger.error("Telegram bot token or channel ID not configured.")
+            return {
+                "success": False,
+                "message_id": None,
+                "error": "Configuration error: Missing bot token or channel ID"
+            }
+
+        url = f"https://api.telegram.org/bot{self.bot_token}/sendPhoto"
+        payload = {
+            "chat_id": self.channel_id,
+            "photo": photo_url,
+            "caption": caption,
+            "parse_mode": "MarkdownV2"
+        }
+
+        # Timeout: 15 seconds
+        timeout = aiohttp.ClientTimeout(total=15.0)
+
+        # Retry config: 3 attempts, exponential backoff: 1s, 2s, 4s
+        attempts = 3
+        backoff = 1.0
+        last_error = None
+
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            for attempt in range(1, attempts + 1):
+                try:
+                    async with session.post(url, json=payload) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if data.get("ok"):
+                                message_id = data.get("result", {}).get("message_id")
+                                return {
+                                    "success": True,
+                                    "message_id": message_id,
+                                    "error": None
+                                }
+                            else:
+                                err_desc = data.get("description", "Unknown API error")
+                                logger.error(f"Telegram photo API error (attempt {attempt}): {err_desc}")
+                                return {
+                                    "success": False,
+                                    "message_id": None,
+                                    "error": f"API error: {err_desc}"
+                                }
+                        else:
+                            text_resp = await response.text()
+                            logger.error(f"Telegram photo HTTP status {response.status} (attempt {attempt}): {text_resp}")
+                            last_error = f"HTTP {response.status}: {text_resp}"
+                except Exception as e:
+                    logger.error(f"Telegram photo error (attempt {attempt}): {e}")
+                    last_error = str(e)
+
+                # Backoff before retry (if not the last attempt)
+                if attempt < attempts:
+                    await asyncio.sleep(backoff)
+                    backoff *= 2.0
+
+            return {
+                "success": False,
+                "message_id": None,
+                "error": f"Failed after {attempts} attempts. Last error: {last_error}"
+            }
+
+    def send_photo_with_caption(self, photo_url: str, caption: str) -> dict:
+        """
+        Publishes a photo with caption to the Telegram channel.
+        """
+        res = None
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            if loop.is_running():
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, self._send_photo_async(photo_url, caption))
+                    res = future.result()
+            else:
+                res = loop.run_until_complete(self._send_photo_async(photo_url, caption))
+        except Exception as e:
+            logger.error(f"TelegramService photo wrapper error: {e}")
+            res = {
+                "success": False,
+                "message_id": None,
+                "error": f"Internal wrapper error: {e}"
+            }
+
+        # Record failure metric if not success
+        if res and not res.get("success"):
+            try:
+                from src.database.database import SessionLocal
+                from src.services.metrics_service import MetricsService
+                db = SessionLocal()
+                try:
+                    MetricsService().increment(db, "telegram_failures")
+                    db.commit()
+                finally:
+                    db.close()
+            except Exception as e:
+                logger.error(f"Failed to record telegram_failures metric: {e}")
+
+        return res
+
     def send_digest(self, digest_text: str) -> dict:
         """
         Sends digest message to Telegram.

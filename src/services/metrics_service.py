@@ -34,7 +34,21 @@ class MetricsService:
         "memory_usage_mb",
         "database_size_mb",
         "active_feeds",
-        "scheduler_running"
+        "scheduler_running",
+        # New AI Metrics
+        "gemini_requests",
+        "gemini_failures",
+        "gemini_articles_analyzed",
+        "gemini_cache_hits",
+        "article_extraction_success",
+        "article_extraction_failures",
+        "media_images_found",
+        "media_trailers_found",
+        "media_lookup_failures",
+        "media_lookup_requests",
+        "news_published",
+        "news_rejected",
+        "duplicate_news_prevented"
     }
 
     METRIC_DEFAULTS = {
@@ -58,6 +72,20 @@ class MetricsService:
         "database_size_mb": {"aggregation_type": "GAUGE", "source": "SchedulerService"},
         "active_feeds": {"aggregation_type": "GAUGE", "source": "SchedulerService"},
         "scheduler_running": {"aggregation_type": "GAUGE", "source": "SchedulerService"},
+        # New AI Defaults
+        "gemini_requests": {"aggregation_type": "COUNTER", "source": "GeminiService"},
+        "gemini_failures": {"aggregation_type": "COUNTER", "source": "GeminiService"},
+        "gemini_articles_analyzed": {"aggregation_type": "COUNTER", "source": "GeminiService"},
+        "gemini_cache_hits": {"aggregation_type": "COUNTER", "source": "GeminiService"},
+        "article_extraction_success": {"aggregation_type": "COUNTER", "source": "ArticleFetcher"},
+        "article_extraction_failures": {"aggregation_type": "COUNTER", "source": "ArticleFetcher"},
+        "media_images_found": {"aggregation_type": "COUNTER", "source": "MediaEnrichmentService"},
+        "media_trailers_found": {"aggregation_type": "COUNTER", "source": "MediaEnrichmentService"},
+        "media_lookup_failures": {"aggregation_type": "COUNTER", "source": "MediaEnrichmentService"},
+        "media_lookup_requests": {"aggregation_type": "COUNTER", "source": "MediaEnrichmentService"},
+        "news_published": {"aggregation_type": "COUNTER", "source": "SchedulerService"},
+        "news_rejected": {"aggregation_type": "COUNTER", "source": "SchedulerService"},
+        "duplicate_news_prevented": {"aggregation_type": "COUNTER", "source": "SchedulerService"}
     }
 
     def record_metric(

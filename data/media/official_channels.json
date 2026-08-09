@@ -1,0 +1,42 @@
+{
+  "Netflix": {
+    "channel_id": "UCwzpYyv86am7fUT5mIhVCRg",
+    "channel_title": "Netflix"
+  },
+  "Marvel Entertainment": {
+    "channel_id": "UCvC4D8la57p2maQs50ESqpA",
+    "channel_title": "Marvel Entertainment"
+  },
+  "Warner Bros. Pictures": {
+    "channel_id": "UCFBwT3r0G_2FGBKjJ__eSgA",
+    "channel_title": "Warner Bros. Pictures"
+  },
+  "Walt Disney Studios": {
+    "channel_id": "UC_3D2XF95MLe8gVpL1glp1g",
+    "channel_title": "Walt Disney Studios"
+  },
+  "Universal Pictures": {
+    "channel_id": "UCq0OueAsipQOfLi40yZ_avA",
+    "channel_title": "Universal Pictures"
+  },
+  "Sony Pictures Entertainment": {
+    "channel_id": "UCz97F7dMxVyUtYyPxqV1yTA",
+    "channel_title": "Sony Pictures Entertainment"
+  },
+  "Paramount Pictures": {
+    "channel_id": "UC5g3K4D-A81_E_A083O1m6Q",
+    "channel_title": "Paramount Pictures"
+  },
+  "HBO": {
+    "channel_id": "UCx-dJuLgguT7ZlG8297y66w",
+    "channel_title": "HBO"
+  },
+  "Prime Video": {
+    "channel_id": "UC1K25w15x-QpMQQ8-c89bOA",
+    "channel_title": "Prime Video"
+  },
+  "Crunchyroll": {
+    "channel_id": "UC6pGDc4bFGD1_VYGsgl-3Ww",
+    "channel_title": "Crunchyroll"
+  }
+}

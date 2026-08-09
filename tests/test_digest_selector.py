@@ -41,9 +41,7 @@ def test_digest_selector_scenarios() -> None:
             canonical_title=f"Eligible {i}",
             event_type="Movie",
             importance_score=70,
-            last_article_at=now - timedelta(minutes=i),
-            published=False
-        )
+            last_article_at=now - timedelta(minutes=i))
         for i in range(15)
     ]
     session.add_all(events_15)
@@ -63,9 +61,7 @@ def test_digest_selector_scenarios() -> None:
             canonical_title=f"Eligible {i}",
             event_type="Movie",
             importance_score=70,
-            last_article_at=now - timedelta(minutes=i),
-            published=False
-        )
+            last_article_at=now - timedelta(minutes=i))
         for i in range(5)
     ]
     session.add_all(events_5)
@@ -84,16 +80,12 @@ def test_digest_selector_scenarios() -> None:
         canonical_title="Low Importance",
         event_type="Movie",
         importance_score=50, # Below 60
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     high_imp = Event(
         canonical_title="High Importance",
         event_type="Movie",
         importance_score=75,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     session.add_all([low_imp, high_imp])
     session.commit()
 
@@ -112,17 +104,14 @@ def test_digest_selector_scenarios() -> None:
         canonical_title="Published Event",
         event_type="Movie",
         importance_score=80,
-        last_article_at=now,
-        published=True # Deprecated fallback
+        last_article_at=now
     )
     unpub_event = Event(
         id="unpub-evt-1",
         canonical_title="Unpublished Event",
         event_type="Movie",
         importance_score=80,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     session.add_all([pub_event, unpub_event])
     session.commit()
 
@@ -150,16 +139,12 @@ def test_digest_selector_scenarios() -> None:
         canonical_title="Old Event",
         event_type="Movie",
         importance_score=80,
-        last_article_at=old_time,
-        published=False
-    )
+        last_article_at=old_time)
     new_event = Event(
         canonical_title="New Event",
         event_type="Movie",
         importance_score=80,
-        last_article_at=new_time,
-        published=False
-    )
+        last_article_at=new_time)
     session.add_all([old_event, new_event])
     session.commit()
 

@@ -41,6 +41,12 @@ class Settings:
         # Gemini API Key Placeholder
         self.GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
 
+        # TMDB API Key Placeholder
+        self.TMDB_API_KEY: str | None = os.getenv("TMDB_API_KEY")
+
+        # YouTube API Key Placeholder
+        self.YOUTUBE_API_KEY: str | None = os.getenv("YOUTUBE_API_KEY")
+
         # Database Settings (Defaults to SQLite in data directory)
         self.DATABASE_URL: str = os.getenv(
             "DATABASE_URL", 

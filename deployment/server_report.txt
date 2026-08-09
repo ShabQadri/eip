@@ -1,0 +1,25 @@
+=== Server Inspection Report ===
+Timestamp: Tue Jun 30 09:14:41 UTC 2026
+Current User: ubuntu
+OS Version:
+NAME="Ubuntu"
+VERSION="24.04.3 LTS (Noble Numbat)"
+CPU Details:
+CPU(s):                                  2
+Model name:                              Neoverse-N1
+Thread(s) per core:                      1
+RAM Details:
+               total        used        free      shared  buff/cache   available
+Mem:           5.8Gi       1.2Gi       892Mi       5.5Mi       3.9Gi       4.6Gi
+Swap:             0B          0B          0B
+Disk Space:
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        45G   11G   34G  24% /
+Python version:
+Python 3.12.3
+Internet Connectivity:
+HTTP/2 200 (GitHub reachable)
+Current Timezone:
+                Time zone: Etc/UTC (UTC, +0000)
+Installed Python Packages (global):
+No pip packages installed

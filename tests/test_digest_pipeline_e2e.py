@@ -53,9 +53,7 @@ def test_pipeline_single_event() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=90,
         source_count=3,
-        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None),
-        published=False
-    )
+        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None))
     session.add(evt)
     session.commit()
 
@@ -90,9 +88,7 @@ def test_pipeline_multiple_events() -> None:
         event_pattern="RENEWAL",
         importance_score=80,
         source_count=2,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     # Event 2: higher importance
     evt2 = Event(
         canonical_title="Dune Messiah",
@@ -101,9 +97,7 @@ def test_pipeline_multiple_events() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=95,
         source_count=3,
-        last_article_at=now - timedelta(hours=1),
-        published=False
-    )
+        last_article_at=now - timedelta(hours=1))
     # Event 3: same importance as Event 2, but older
     evt3 = Event(
         canonical_title="Batman",
@@ -112,9 +106,7 @@ def test_pipeline_multiple_events() -> None:
         event_pattern="CASTING",
         importance_score=95,
         source_count=4,
-        last_article_at=now - timedelta(hours=2),
-        published=False
-    )
+        last_article_at=now - timedelta(hours=2))
 
     session.add_all([evt1, evt2, evt3])
     session.commit()
@@ -155,9 +147,7 @@ def test_pipeline_max_12_events() -> None:
             event_pattern="RELEASE_DATE",
             importance_score=80 + (i % 10),
             source_count=2,
-            last_article_at=now,
-            published=False
-        )
+            last_article_at=now)
         for i in range(1, 16)
     ]
     session.add_all(events)
@@ -190,9 +180,7 @@ def test_pipeline_telegram_safe() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=85,
         source_count=2,
-        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None),
-        published=False
-    )
+        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None))
     session.add(evt)
     session.commit()
 
@@ -226,9 +214,7 @@ def test_pipeline_breaking_events() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=95,
         source_count=3,
-        last_article_at=now - timedelta(hours=1),
-        published=False
-    )
+        last_article_at=now - timedelta(hours=1))
     # Event B: Ineligible (importance=75)
     evt_b = Event(
         canonical_title="Event B",
@@ -237,9 +223,7 @@ def test_pipeline_breaking_events() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=75,
         source_count=3,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
 
     session.add_all([evt_a, evt_b])
     session.commit()
@@ -270,9 +254,7 @@ def test_pipeline_stage_flow_validation() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=90,
         source_count=2,
-        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None),
-        published=False
-    )
+        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None))
     session.add(evt)
     session.commit()
 
@@ -326,9 +308,7 @@ def test_pipeline_performance() -> None:
             event_pattern="PRODUCTION_START",
             importance_score=70 + (i % 25),  # 70 to 94
             source_count=2,
-            last_article_at=now,
-            published=False
-        )
+            last_article_at=now)
         for i in range(1, 1001)
     ]
     session.add_all(events)

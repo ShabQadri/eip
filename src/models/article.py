@@ -5,7 +5,7 @@ Article entity model.
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database.base import Base
 from src.models.mixins import TimestampMixin
@@ -95,6 +95,20 @@ class Article(Base, TimestampMixin):
         index=True, 
         nullable=False
     )
+
+    # New AI and Article Reading Fields
+    full_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content_hash: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    canonical_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    published_source_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    article_published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    content_extracted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    content_extraction_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    og_image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    media_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    video_urls_json: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    event_relationship: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    ai_analysis_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships
     source: Mapped["Source"] = relationship("Source", back_populates="articles")

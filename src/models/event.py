@@ -119,13 +119,11 @@ class Event(Base, TimestampMixin):
         index=True,
         nullable=True
     )
-    # TODO: remove after migration.
-    published: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        index=True
-    )
+    # New AI and Consolidation Fields
+    first_reported_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    tmdb_id: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
+    event_history_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(

@@ -72,7 +72,7 @@ def test_generate_digest_three_events() -> None:
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    # Seed 3 events (published=False, importance=80)
+    # Seed 3 events (importance=80)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     for i in range(1, 4):
         evt = Event(
@@ -83,9 +83,7 @@ def test_generate_digest_three_events() -> None:
             event_pattern="PRODUCTION_START",
             importance_score=80,
             source_count=3,
-            last_article_at=now - timedelta(seconds=i),
-            published=False
-        )
+            last_article_at=now - timedelta(seconds=i))
         session.add(evt)
     session.commit()
 
@@ -125,9 +123,7 @@ def test_generate_digest_telegram_safe_true_and_false() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=85,
         source_count=2,
-        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None),
-        published=False
-    )
+        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None))
     session.add(evt)
     session.commit()
 
@@ -169,9 +165,7 @@ def test_get_breaking_events_zero() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=70,  # Below 80
         source_count=3,
-        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None),
-        published=False
-    )
+        last_article_at=datetime.now(timezone.utc).replace(tzinfo=None))
     session.add(evt)
     session.commit()
 
@@ -209,9 +203,7 @@ def test_get_breaking_events_multiple() -> None:
         event_pattern="PRODUCTION_START",
         importance_score=90,
         source_count=3,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     # 2. Eligible breaking
     evt2 = Event(
         canonical_title="Wednesday",
@@ -220,9 +212,7 @@ def test_get_breaking_events_multiple() -> None:
         event_pattern="RENEWAL",
         importance_score=85,
         source_count=2,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     # 3. Not breaking (only 1 source)
     evt3 = Event(
         canonical_title="Spiderman",
@@ -231,9 +221,7 @@ def test_get_breaking_events_multiple() -> None:
         event_pattern="TRAILER",
         importance_score=95,
         source_count=1,
-        last_article_at=now,
-        published=False
-    )
+        last_article_at=now)
     # 4. Not breaking (stale, 48 hours old)
     evt4 = Event(
         canonical_title="Batman",
@@ -242,9 +230,7 @@ def test_get_breaking_events_multiple() -> None:
         event_pattern="CASTING",
         importance_score=90,
         source_count=3,
-        last_article_at=now - timedelta(hours=48),
-        published=False
-    )
+        last_article_at=now - timedelta(hours=48))
     session.add_all([evt1, evt2, evt3, evt4])
     session.commit()
 
