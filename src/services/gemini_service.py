@@ -289,27 +289,29 @@ class GeminiService:
         return None
 
     async def _generate_initial_draft(self, event_title: str, articles_content: List[str], db: Optional[Any] = None) -> Optional[str]:
-        """Compiles consolidated articles content into a single premium story using gemini-3.6-flash."""
+        """Compiles consolidated articles content into a short premium news brief using gemini-3.6-flash."""
         combined_bodies = "\n\n=== SOURCE ARTICLE ===\n".join(articles_content)
         
         prompt = (
-            f"You are a premium copywriter for Entertainment News Digest.\n"
-            f"We are publishing a story about the event: '{event_title}'.\n\n"
+            f"You are a premium editor for Entertainment News Digest.\n"
+            f"Your goal is to write a highly concise, factual, and focused news brief about the event: '{event_title}'.\n"
+            f"Remember: READ MORE -> UNDERSTAND MORE -> WRITE LESS. Deliver only the essential development, removing all SEO fluff, plot summaries, general background, biographies, opinions, and side stories.\n\n"
             f"Below is the consolidated, extracted body content from our source articles:\n"
             f"=== SOURCE ARTICLE ===\n{combined_bodies}\n\n"
-            f"Write a premium editorial report summarizing this development.\n"
-            f"RULES:\n"
-            f"1. Rely ONLY on confirmed facts or clearly supported inferences from the text.\n"
-            f"   Never invent dates, box office numbers, cast attachments, or production statuses.\n"
-            f"2. Write 2 to 4 concise, original paragraphs explaining what happened and why it matters.\n"
-            f"   Avoid reproducing copyrighted phrases directly.\n"
-            f"3. Format exactly like this, using Telegram-safe MarkdownV2. Do NOT add source links or watch trailers here.\n"
-            f"   Only output the headline and the body paragraphs.\n\n"
+            f"Write the news brief according to these strict rules:\n"
+            f"1. Rely ONLY on verified facts in the source text. Never invent dates, cast, box office figures, or predictions.\n"
+            f"2. Keep the brief short and match the development type:\n"
+            f"   - Trailer, Teaser, Production Start, Renewal, First Look, or Release Date news: 1 to 2 sentences (approx. 30-70 words).\n"
+            f"   - Casting news: 1 to 3 sentences (approx. 40-80 words).\n"
+            f"   - Box office news: 2 to 3 sentences including key milestones/numbers (approx. 60-100 words).\n"
+            f"   - Normal/general news: 1 short paragraph (approx. 60-120 words).\n"
+            f"   - Complex industry news: 2 to 3 short paragraphs only when multiple distinct facts are required (approx. 100-180 words, max 250 words).\n"
+            f"3. Do NOT copy the source article structure or try to summarize every paragraph. Identify the single most important new thing that happened and write a brief about it.\n"
+            f"4. Format the output exactly like this using Telegram-safe MarkdownV2. Only output the headline and the brief text. Do NOT add source links or watch trailers in this text.\n\n"
             f"Example format:\n"
-            f"🎬 Wednesday Season 2 Begins Filming in Ireland\n\n"
-            f"Netflix has officially commenced production on the highly anticipated second season of Wednesday. "
-            f"Filming has shifted from Romania to Ireland to support larger sets and production demands...\n\n"
-            f"Do not expose any debug parameters, database IDs, or source domains in this text."
+            f"🎬 Headline Here\n\n"
+            f"Short brief text explaining the core news...\n\n"
+            f"Do not include any extra lines, debug fields, or metadata."
         )
 
         payload = {
@@ -416,7 +418,7 @@ class GeminiService:
         claims_list = "\n".join(f"- {c}" for c in unsupported_claims)
         
         prompt = (
-            f"You are a premium copywriter for Entertainment News Digest.\n"
+            f"You are a premium editor for Entertainment News Digest.\n"
             f"We are publishing a story about: '{event_title}'.\n\n"
             f"Below is our previous story draft:\n"
             f"=== PREVIOUS DRAFT ===\n{draft_story}\n\n"
@@ -424,8 +426,13 @@ class GeminiService:
             f"{claims_list}\n\n"
             f"Below is the consolidated, extracted body content from our source articles:\n"
             f"=== SOURCE ARTICLE ===\n{combined_bodies}\n\n"
-            f"Rewrite the story draft to remove those claims completely. Do not predict future outcomes, box office performance, or audience responses. Relabel or delete any sentences containing the flagged claims.\n"
-            f"Format the final output exactly like before, with 2 to 4 paragraphs in Telegram-safe MarkdownV2."
+            f"Rewrite the story draft to remove those claims completely. Deliver a highly concise brief, matching these length guidelines:\n"
+            f"- Trailer, Teaser, Production Start, Renewal, First Look, or Release Date news: 1 to 2 sentences (30-70 words).\n"
+            f"- Casting news: 1 to 3 sentences (40-80 words).\n"
+            f"- Box office news: 2 to 3 sentences (60-100 words).\n"
+            f"- General/Normal news: 1 short paragraph (60-120 words).\n"
+            f"- Complex news: 2 to 3 short paragraphs (100-180 words, max 250 words).\n\n"
+            f"Format the final output exactly like before, with the headline and the concise brief text in Telegram-safe MarkdownV2."
         )
 
         payload = {
