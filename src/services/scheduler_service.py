@@ -266,6 +266,8 @@ class SchedulerService:
                         if not bodies:
                             bodies = [art.description for art in linked_articles if art.description]
                             
+                        # Add a short delay to prevent API rate limit (429) overloads
+                        await asyncio.sleep(2)
                         # Synthesize story copy using gemini-3.6-flash
                         story_text = await gemini.synthesize_editorial_story(event.canonical_title, bodies, db=db)
                         if not story_text:
