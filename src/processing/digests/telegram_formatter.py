@@ -107,6 +107,59 @@ class TelegramFormatter:
         raw_msg = "\n".join(lines)
         return self.escape_markdown_v2(raw_msg)
 
+    def format_digest_story(self, idx: int, title: str, story_text: str, source_urls: List[str], trailer_url: Optional[str] = None) -> str:
+        """
+        Formats a single story block inside a combined digest message.
+        """
+        escaped_title = self.escape_markdown_v2(title.strip())
+        
+        # Split body into paragraphs, escape each, and join with double newlines
+        paragraphs = [self.escape_markdown_v2(p.strip()) for p in story_text.split("\n\n") if p.strip()]
+        body_content = "\n\n".join(paragraphs)
+        
+        # Check if the title already starts with an emoji, else add default
+        headline_prefix = ""
+        if not (escaped_title.startswith("🎬") or escaped_title.startswith("📺") or escaped_title.startswith("\\🎬") or escaped_title.startswith("\\📺")):
+            if "tv" in title.lower() or "show" in title.lower() or "series" in title.lower() or "season" in title.lower():
+                headline_prefix = "📺 "
+            else:
+                headline_prefix = "🎬 "
+                
+        header_line = f"{idx}. {headline_prefix}*{escaped_title}*"
+        
+        block = f"{header_line}\n\n{body_content}"
+        
+        # Append source links
+        if source_urls:
+            valid_sources = [url for url in source_urls if url]
+            links = []
+            for url in valid_sources[:3]:
+                parsed = urlparse(url)
+                domain = parsed.netloc or "Source"
+                if domain.startswith("www."):
+                    domain = domain[4:]
+                if "." in domain:
+                    parts = domain.split(".")
+                    domain_name = parts[-2].capitalize()
+                else:
+                    domain_name = domain.capitalize()
+                
+                escaped_domain = self.escape_markdown_v2(domain_name)
+                escaped_url = self.escape_link_url(url)
+                links.append(f"[{escaped_domain}]({escaped_url})")
+            
+            if len(links) == 1:
+                block += f"\n\n🔗 Source: {links[0]}"
+            elif len(links) > 1:
+                block += f"\n\n🔗 Sources: {' · '.join(links)}"
+                
+        # Append trailer link if available
+        if trailer_url:
+            escaped_trailer = self.escape_link_url(trailer_url)
+            block += f"\n\n▶️ [Watch Trailer]({escaped_trailer})"
+            
+        return block
+
     def format_digest_message(self, digest_text: str) -> str:
         """
         Converts plain text digest into a Telegram-safe MarkdownV2 string.

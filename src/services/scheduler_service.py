@@ -251,15 +251,14 @@ class SchedulerService:
             
             if not events:
                 # Send no-news digest fallback
-                no_news_msg = "🎬 *Entertainment News Digest*\n\nNo major entertainment developments at this time\\."
+                no_news_msg = "🎬 *ENTERTAINMENT NEWS DIGEST*\n\nNo major entertainment developments at this time\\."
                 self.telegram_service.send_digest(no_news_msg)
                 logger.info("No events for digest. Sent default no-news message.")
             else:
                 gemini = GeminiService()
-                publish_count = 0
                 
-                # Maximum of 12 stories
-                for event in events[:12]:
+                stories = []
+                for event in events:
                     try:
                         # Pull articles linked to this event
                         linked_articles = db.query(Article).filter_by(event_id=event.id).all()
@@ -271,7 +270,7 @@ class SchedulerService:
                         story_text = await gemini.synthesize_editorial_story(event.canonical_title, bodies, db=db)
                         if not story_text:
                             story_text = event.summary or event.display_title
-
+                            
                         source_urls = [art.canonical_url or art.url for art in linked_articles if art.canonical_url or art.url]
                         source_urls = list(dict.fromkeys(source_urls))
                         
@@ -285,72 +284,80 @@ class SchedulerService:
                                 
                         if not trailer_url:
                             trailer_url = await enricher.search_official_youtube_trailer(event.canonical_title)
+                            
+                        stories.append({
+                            "event": event,
+                            "story_text": story_text,
+                            "source_urls": source_urls,
+                            "trailer_url": trailer_url
+                        })
+                    except Exception as e:
+                        logger.error(f"Error processing story for event {event.id}: {e}")
 
-                        # Find artwork
-                        image_url = None
-                        history = list(event.event_history_json or [])
-                        for h in history:
-                            if h.get("action") == "enrich_media_tmdb":
-                                image_url = h.get("poster_url") or h.get("backdrop_url")
-                                break
-                        if not image_url:
-                            for art in linked_articles:
-                                if art.og_image_url:
-                                    image_url = art.og_image_url
-                                    break
-                        if not image_url:
-                            for art in linked_articles:
-                                media = art.media_json or {}
-                                images = media.get("images", [])
-                                if images:
-                                    image_url = images[0]
-                                    break
-
-                        # Format post
-                        formatted_post = self.telegram_formatter.format_event_for_telegram(
-                            title=event.display_title or event.canonical_title,
-                            story_text=story_text,
-                            source_urls=source_urls,
-                            trailer_url=trailer_url
-                        )
-
-                        # Send and confirm delivery before database logging
-                        res = None
-                        if image_url:
-                            res = self.telegram_service.send_photo_with_caption(image_url, formatted_post)
-                            if not res.get("success"):
-                                logger.warning(f"Photo send failed for {event.id}, trying text fallback.")
-                                res = self.telegram_service.send_message(formatted_post)
-                        else:
-                            res = self.telegram_service.send_message(formatted_post)
-
-                        if res.get("success"):
-                            msg_id = str(res.get("message_id")) if res.get("message_id") is not None else None
+                if not stories:
+                    no_news_msg = "🎬 *ENTERTAINMENT NEWS DIGEST*\n\nNo major entertainment developments at this time\\."
+                    self.telegram_service.send_digest(no_news_msg)
+                    logger.info("No events for digest. Sent default no-news message.")
+                else:
+                    # Rebuild digest and respect character limit budget (safety ceiling: 4000 characters)
+                    kolkata_tz = ZoneInfo("Asia/Kolkata")
+                    date_str = datetime.now(kolkata_tz).strftime("%d %B %Y")
+                    
+                    full_digest_text = ""
+                    while len(stories) > 0:
+                        digest_header = f"🎬 *ENTERTAINMENT NEWS DIGEST*\n*{self.telegram_formatter.escape_markdown_v2(date_str)}*\n\n"
+                        
+                        story_blocks = []
+                        for i, story in enumerate(stories, 1):
+                            formatted_story = self.telegram_formatter.format_digest_story(
+                                idx=i,
+                                title=story["event"].display_title or story["event"].canonical_title,
+                                story_text=story["story_text"],
+                                source_urls=story["source_urls"],
+                                trailer_url=story["trailer_url"]
+                            )
+                            story_blocks.append(formatted_story)
+                            
+                        divider = "\n\n" + self.telegram_formatter.escape_markdown_v2("────────────") + "\n\n"
+                        digest_body = divider.join(story_blocks)
+                        full_digest_text = digest_header + digest_body
+                        
+                        # Check character budget (comfortable safety ceiling below 4096 to prevent Telegram errors)
+                        if len(full_digest_text) <= 4000 or len(stories) <= 2:
+                            break
+                            
+                        # Prune the lowest priority story (stories are already sorted by importance DESC)
+                        pruned = stories.pop()
+                        logger.info(f"Digest size ({len(full_digest_text)} chars) exceeded limit. Pruning event {pruned['event'].canonical_title}")
+                    
+                    # Send combined digest message
+                    res = self.telegram_service.send_digest(full_digest_text)
+                    
+                    if res.get("success"):
+                        msg_id = str(res.get("message_id")) if res.get("message_id") is not None else None
+                        
+                        # Mark all included events as published
+                        for story in stories:
+                            evt = story["event"]
                             self.publication_service.mark_published(
                                 db,
-                                event.id,
+                                evt.id,
                                 "TELEGRAM",
                                 post_type,
                                 external_id=msg_id,
                                 metadata={"message_id": msg_id} if msg_id else {}
                             )
                             db.commit()
-                            publish_count += 1
                             ms.increment(db, "news_published", source="SchedulerService")
                             db.commit()
-                            logger.info(f"Published story for event {event.id} ({event.canonical_title})")
-                        else:
-                            logger.error(f"Failed to publish story for event {event.id}: {res.get('error')}")
-
-                    except Exception as e:
-                        logger.error(f"Error publishing story for event {event.id} in digest pipeline: {e}")
-
-                if publish_count > 0:
-                    try:
+                            
                         ms.increment(db, "digests_sent", source="SchedulerService")
                         db.commit()
-                    except Exception:
-                        pass
+                        logger.info(f"Published combined digest message with {len(stories)} stories. Message ID: {msg_id}")
+                    else:
+                        logger.error(f"Failed to send combined digest: {res.get('error')}")
+                        ms.increment(db, "telegram_failures", source="SchedulerService")
+                        db.commit()
 
             duration_ms = (time_metric.perf_counter() - start_time) * 1000
             try:
