@@ -154,7 +154,7 @@ class SchedulerService:
                     else:
                         # 4. Call Gemini Editorial Classification
                         logger.info(f"Calling Gemini to analyze article: {art.title}")
-                        analysis_obj = await gemini.analyze_article(art.title, clean_text, art.url, art.description or "")
+                        analysis_obj = await gemini.analyze_article(art.title, clean_text, art.url, art.description or "", db=db)
                         if analysis_obj:
                             analysis_data = analysis_obj.model_dump()
                             art.ai_analysis_json = analysis_data
@@ -168,7 +168,6 @@ class SchedulerService:
                                 ms.increment(db, "news_rejected", source="SchedulerService")
                         else:
                             art.status = "ignored"
-                            ms.increment(db, "gemini_failures", source="SchedulerService")
 
                 except Exception as e:
                     logger.error(f"Error executing AI pipeline on article {art.id}: {e}")
@@ -269,7 +268,7 @@ class SchedulerService:
                             bodies = [art.description for art in linked_articles if art.description]
                             
                         # Synthesize story copy using gemini-3.6-flash
-                        story_text = await gemini.synthesize_editorial_story(event.canonical_title, bodies)
+                        story_text = await gemini.synthesize_editorial_story(event.canonical_title, bodies, db=db)
                         if not story_text:
                             story_text = event.summary or event.display_title
 
@@ -457,7 +456,7 @@ class SchedulerService:
                         
                     # Synthesize story copy using gemini-3.6-flash
                     gemini = GeminiService()
-                    story_text = await gemini.synthesize_editorial_story(event.canonical_title, bodies)
+                    story_text = await gemini.synthesize_editorial_story(event.canonical_title, bodies, db=db)
                     if not story_text:
                         story_text = event.summary or event.display_title
 

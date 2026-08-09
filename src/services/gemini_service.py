@@ -134,7 +134,7 @@ class GeminiService:
             logger.error(f"Error querying Gemini models: {e}")
             return []
 
-    async def _post_generate(self, model: str, payload: Dict[str, Any]) -> Tuple[Optional[str], str]:
+    async def _post_generate(self, model: str, payload: Dict[str, Any], db: Optional[Any] = None) -> Tuple[Optional[str], str]:
         """Helper to post content generation requests with transient failure retries."""
         if not self.api_key:
             return None, "API_KEY_MISSING"
@@ -146,6 +146,8 @@ class GeminiService:
         
         async with aiohttp.ClientSession() as session:
             for attempt in range(1, attempts + 1):
+                # Increment request counter on actual attempt
+                self._increment_metric("gemini_requests", db=db)
                 try:
                     async with session.post(url, json=payload, headers=self._get_headers(), timeout=30) as response:
                         if response.status >= 500 or response.status == 429:
@@ -162,14 +164,17 @@ class GeminiService:
                                 if parts:
                                     text_result = parts[0].get("text", "")
                                     return text_result, "SUCCESS"
+                            self._increment_metric("gemini_failures", db=db)
                             return None, "NO_CANDIDATES"
                         
                         resp_text = await response.text()
                         logger.error(f"Gemini API returned error (attempt {attempt}): HTTP {response.status} - {resp_text}")
+                        self._increment_metric("gemini_failures", db=db)
                         return None, f"HTTP_{response.status}"
 
                 except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                     logger.warning(f"Gemini API request failed (attempt {attempt}): {e}")
+                    self._increment_metric("gemini_failures", db=db)
                     if attempt < attempts:
                         # Sleep 15s if rate limited to allow quota to reset
                         sleep_time = 15.0 if getattr(e, "status", None) == 429 else backoff
@@ -179,11 +184,12 @@ class GeminiService:
                         return None, type(e).__name__
                 except Exception as e:
                     logger.error(f"Unexpected error calling Gemini API: {e}")
+                    self._increment_metric("gemini_failures", db=db)
                     return None, "UNEXPECTED_ERROR"
 
         return None, "MAX_RETRIES_FAILED"
 
-    async def analyze_article(self, article_title: str, article_body: str, article_url: str, article_desc: str = "") -> Optional[ArticleEditorialAnalysis]:
+    async def analyze_article(self, article_title: str, article_body: str, article_url: str, article_desc: str = "", db: Optional[Any] = None) -> Optional[ArticleEditorialAnalysis]:
         """
         Runs article classification and details extraction using gemini-3.5-flash-lite.
         Validates output against Pydantic schema, retrying once on format failure.
@@ -239,13 +245,9 @@ class GeminiService:
         # Run with fallback retry for schema validation
         retries = 2
         for attempt in range(1, retries + 1):
-            text_result, status = await self._post_generate(self.lite_model, payload)
-            
-            # Increment request counter metric
-            self._increment_metric("gemini_requests")
+            text_result, status = await self._post_generate(self.lite_model, payload, db=db)
 
             if text_result is None:
-                self._increment_metric("gemini_failures")
                 logger.error(f"Gemini analysis fetch failed with status: {status}")
                 return None
 
@@ -267,12 +269,11 @@ class GeminiService:
                     analysis = ArticleEditorialAnalysis(**data)
                 else:
                     raise ValueError("Gemini returned invalid non-object format")
-                self._increment_metric("gemini_articles_analyzed")
+                self._increment_metric("gemini_articles_analyzed", db=db)
                 return analysis
             except (json.JSONDecodeError, ValidationError, ValueError) as e:
                 logger.warning(f"Structured JSON validation failed (attempt {attempt}/{retries}): {e}. Result: {text_result}")
                 if attempt == retries:
-                    self._increment_metric("gemini_failures")
                     logger.error(f"Gemini returned invalid json format after {retries} attempts.")
                     return None
                 # Add guidance to prompt for retry
@@ -287,7 +288,7 @@ class GeminiService:
 
         return None
 
-    async def _generate_initial_draft(self, event_title: str, articles_content: List[str]) -> Optional[str]:
+    async def _generate_initial_draft(self, event_title: str, articles_content: List[str], db: Optional[Any] = None) -> Optional[str]:
         """Compiles consolidated articles content into a single premium story using gemini-3.6-flash."""
         combined_bodies = "\n\n=== SOURCE ARTICLE ===\n".join(articles_content)
         
@@ -322,17 +323,15 @@ class GeminiService:
             }
         }
 
-        self._increment_metric("gemini_requests")
-        text_result, status = await self._post_generate(self.strong_model, payload)
+        text_result, status = await self._post_generate(self.strong_model, payload, db=db)
         
         if text_result is None:
-            self._increment_metric("gemini_failures")
             logger.error(f"Gemini final writing failed: {status}")
             return None
 
         return text_result.strip()
 
-    async def fact_check_story(self, story_text: str, articles_content: List[str]) -> Optional[FactCheckReport]:
+    async def fact_check_story(self, story_text: str, articles_content: List[str], db: Optional[Any] = None) -> Optional[FactCheckReport]:
         """
         Splits the story into claims and verifies each against source content.
         Uses gemini-3.5-flash-lite with structured JSON output.
@@ -373,11 +372,9 @@ class GeminiService:
         # Run with fallback retry for schema validation
         retries = 2
         for attempt in range(1, retries + 1):
-            text_result, status = await self._post_generate(self.lite_model, payload)
-            self._increment_metric("gemini_requests")
+            text_result, status = await self._post_generate(self.lite_model, payload, db=db)
 
             if text_result is None:
-                self._increment_metric("gemini_failures")
                 logger.error(f"Gemini fact-checking failed with status: {status}")
                 return None
 
@@ -399,7 +396,6 @@ class GeminiService:
             except (json.JSONDecodeError, ValidationError, ValueError) as e:
                 logger.warning(f"Fact Check JSON validation failed (attempt {attempt}/{retries}): {e}. Result: {text_result}")
                 if attempt == retries:
-                    self._increment_metric("gemini_failures")
                     return None
                 payload["contents"].append({
                     "role": "model",
@@ -412,7 +408,7 @@ class GeminiService:
 
         return None
 
-    async def rewrite_corrected_story(self, event_title: str, articles_content: List[str], draft_story: str, unsupported_claims: List[str]) -> Optional[str]:
+    async def rewrite_corrected_story(self, event_title: str, articles_content: List[str], draft_story: str, unsupported_claims: List[str], db: Optional[Any] = None) -> Optional[str]:
         """
         Asks gemini-3.6-flash to rewrite the story draft, removing the unsupported claims.
         """
@@ -443,26 +439,24 @@ class GeminiService:
             }
         }
 
-        self._increment_metric("gemini_requests")
-        text_result, status = await self._post_generate(self.strong_model, payload)
+        text_result, status = await self._post_generate(self.strong_model, payload, db=db)
         if text_result is None:
-            self._increment_metric("gemini_failures")
             logger.error(f"Gemini correction rewrite failed: {status}")
             return None
         return text_result.strip()
 
-    async def synthesize_editorial_story(self, event_title: str, articles_content: List[str]) -> Optional[str]:
+    async def synthesize_editorial_story(self, event_title: str, articles_content: List[str], db: Optional[Any] = None) -> Optional[str]:
         """
         Compiles consolidated articles content into a single premium story using gemini-3.6-flash,
         runs fact-checking, and applies corrections up to 2 times before deciding to publish or reject.
         """
-        story_text = await self._generate_initial_draft(event_title, articles_content)
+        story_text = await self._generate_initial_draft(event_title, articles_content, db=db)
         if not story_text:
             return None
 
         max_attempts = 2
         for attempt in range(max_attempts + 1):
-            report = await self.fact_check_story(story_text, articles_content)
+            report = await self.fact_check_story(story_text, articles_content, db=db)
             if not report:
                 logger.warning(f"Fact-checking failed for event '{event_title}'. Rejecting story.")
                 return None
@@ -479,23 +473,30 @@ class GeminiService:
             
             if attempt < max_attempts:
                 logger.info(f"Fact-checker flagged {len(unsupported)} unsupported claims for '{event_title}' (attempt {attempt+1}/{max_attempts}). Rewriting...")
-                story_text = await self.rewrite_corrected_story(event_title, articles_content, story_text, unsupported)
+                story_text = await self.rewrite_corrected_story(event_title, articles_content, story_text, unsupported, db=db)
                 if not story_text:
                     return None
             else:
                 logger.error(f"Story for '{event_title}' rejected due to persistent unsupported claims after {max_attempts} corrections: {unsupported}")
                 return None
 
-    def _increment_metric(self, name: str) -> None:
-        """Saves metrics increments directly to database if session is open."""
-        try:
-            from src.database.database import SessionLocal
-            from src.services.metrics_service import MetricsService
-            db = SessionLocal()
+    def _increment_metric(self, name: str, db: Optional[Any] = None) -> None:
+        """Saves metrics increments directly to database."""
+        if db is not None:
             try:
+                from src.services.metrics_service import MetricsService
                 MetricsService().increment(db, name, source="GeminiService")
-                db.commit()
-            finally:
-                db.close()
-        except Exception as e:
-            logger.error(f"Failed to record gemini metrics: {e}")
+            except Exception as e:
+                logger.error(f"Failed to record gemini metric on passed session: {e}")
+        else:
+            try:
+                from src.database.database import SessionLocal
+                from src.services.metrics_service import MetricsService
+                new_db = SessionLocal()
+                try:
+                    MetricsService().increment(new_db, name, source="GeminiService")
+                    new_db.commit()
+                finally:
+                    new_db.close()
+            except Exception as e:
+                logger.error(f"Failed to record gemini metrics: {e}")
