@@ -71,7 +71,7 @@ class MediaEnrichmentService:
         except Exception as e:
             logger.error(f"Error saving YouTube cache: {e}")
 
-    async def search_tmdb(self, title: str, media_type: str = "movie", year: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    async def search_tmdb(self, title: str, media_type: str = "movie", year: Optional[int] = None, db: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """
         Queries TMDB for a movie or TV show, validates the results, and caches outcomes.
         """
@@ -100,7 +100,7 @@ class MediaEnrichmentService:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=10) as response:
                     # Increment metrics
-                    self._increment_metric("media_lookup_requests")
+                    self._increment_metric("media_lookup_requests", db=db)
                     if response.status == 200:
                         data = await response.json()
                         results = data.get("results", [])
@@ -113,49 +113,39 @@ class MediaEnrichmentService:
                                         fb_data = await fb_response.json()
                                         results = fb_data.get("results", [])
 
-                        # Validate results
-                        for res in results:
-                            res_title = res.get("title") or res.get("name") or ""
-                            res_date = res.get("release_date") or res.get("first_air_date") or ""
+                        if results:
+                            primary = results[0]
+                            poster_path = primary.get("poster_path")
+                            backdrop_path = primary.get("backdrop_path")
                             
-                            # Calculate name similarity
-                            sim = fuzz.token_sort_ratio(title.lower(), res_title.lower())
-                            if sim >= 80:
-                                # Validate year if date is present
-                                if year and res_date:
-                                    try:
-                                        res_year = int(res_date.split("-")[0])
-                                        # Allow release slip +/- 1 year
-                                        if abs(res_year - year) > 1:
-                                            continue
-                                    except ValueError:
-                                        pass
-                                
-                                # Matched! Extract metadata
-                                matched_data = {
-                                    "tmdb_id": str(res.get("id")),
-                                    "title": res_title,
-                                    "poster_url": f"https://image.tmdb.org/t/p/w500{res.get('poster_path')}" if res.get("poster_path") else None,
-                                    "backdrop_url": f"https://image.tmdb.org/t/p/w1280{res.get('backdrop_path')}" if res.get("backdrop_path") else None
-                                }
-                                self.tmdb_cache[cache_key] = matched_data
-                                self._save_tmdb_cache()
-                                return matched_data
-                                
-                        # No valid matches
-                        self.tmdb_cache[cache_key] = None
-                        self._save_tmdb_cache()
-                        return None
+                            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+                            backdrop_url = f"https://image.tmdb.org/t/p/w1280{backdrop_path}" if backdrop_path else None
+                            
+                            enriched = {
+                                "tmdb_id": str(primary.get("id")),
+                                "title": primary.get("title") or primary.get("name"),
+                                "media_type": tmdb_type,
+                                "release_year": primary.get("release_date", "")[:4] or primary.get("first_air_date", "")[:4],
+                                "poster_url": poster_url,
+                                "backdrop_url": backdrop_url
+                            }
+                            self.tmdb_cache[cache_key] = enriched
+                            self._save_tmdb_cache()
+                            return enriched
+                        else:
+                            self.tmdb_cache[cache_key] = None
+                            self._save_tmdb_cache()
+                            return None
                     else:
-                        self._increment_metric("media_lookup_failures")
+                        self._increment_metric("media_lookup_failures", db=db)
                         logger.error(f"TMDB search failed with HTTP {response.status}")
                         return None
         except Exception as e:
-            self._increment_metric("media_lookup_failures")
+            self._increment_metric("media_lookup_failures", db=db)
             logger.error(f"Error querying TMDB API: {e}")
             return None
 
-    async def search_official_youtube_trailer(self, entity_name: str, year: Optional[int] = None) -> Optional[str]:
+    async def search_official_youtube_trailer(self, entity_name: str, year: Optional[int] = None, db: Optional[Any] = None) -> Optional[str]:
         """
         Queries YouTube for verified official trailer and returns video URL.
         """
@@ -180,7 +170,7 @@ class MediaEnrichmentService:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=10) as response:
-                    self._increment_metric("media_lookup_requests")
+                    self._increment_metric("media_lookup_requests", db=db)
                     if response.status == 200:
                         data = await response.json()
                         items = data.get("items", [])
@@ -193,66 +183,57 @@ class MediaEnrichmentService:
 
                         for item in items:
                             snippet = item.get("snippet", {})
-                            video_title = snippet.get("title", "")
-                            channel_id = snippet.get("channelId", "")
-                            channel_title = snippet.get("channelTitle", "")
+                            title_lower = snippet.get("title", "").lower()
+                            channel_id_lower = snippet.get("channelId", "").lower()
+                            channel_title_lower = snippet.get("channelTitle", "").lower()
                             video_id = item.get("id", {}).get("videoId")
 
-                            if not video_id:
+                            # Title filter
+                            if any(kw in title_lower for kw in bad_keywords):
                                 continue
 
-                            # 1. Reject fan edits/reactions
-                            video_title_lower = video_title.lower()
-                            if any(kw in video_title_lower for kw in bad_keywords):
-                                continue
-
-                            # 2. Strong match check (video title must contain movie name keywords)
-                            # Collapse punctuation and spaces for comparison
-                            clean_entity = re.sub(r"[^\w\s]", "", entity_name.lower())
-                            words = clean_entity.split()
-                            # Check if at least 70% of entity keywords are present in the video title
-                            matches = sum(1 for w in words if w in video_title_lower)
-                            if matches < max(1, len(words) * 0.7):
-                                continue
-
-                            # 3. Channel verification
+                            # Channel Whitelist matching
                             is_official = (
-                                channel_id.lower() in whitelist_channel_ids or
-                                channel_title.lower() in whitelist_channel_titles or
-                                "official" in channel_title.lower() or
-                                any(studio in channel_title.lower() for studio in ["netflix", "marvel", "disney", "warner bros", "paramount", "sony", "universal", "hbo", "prime video"])
+                                channel_id_lower in whitelist_channel_ids or
+                                channel_title_lower in whitelist_channel_titles or
+                                "official" in channel_title_lower
                             )
 
-                            if is_official:
-                                trailer_url = f"https://www.youtube.com/watch?v={video_id}"
-                                self.youtube_cache[cache_key] = trailer_url
+                            if is_official and video_id:
+                                video_url = f"https://www.youtube.com/watch?v={video_id}"
+                                self.youtube_cache[cache_key] = video_url
                                 self._save_youtube_cache()
-                                self._increment_metric("media_trailers_found")
-                                return trailer_url
+                                self._increment_metric("media_trailers_found", db=db)
+                                return video_url
 
-                        # No official match found
+                        # No official matching trailer found
                         self.youtube_cache[cache_key] = None
                         self._save_youtube_cache()
                         return None
                     else:
-                        self._increment_metric("media_lookup_failures")
+                        self._increment_metric("media_lookup_failures", db=db)
                         logger.error(f"YouTube search failed with HTTP {response.status}")
                         return None
         except Exception as e:
-            self._increment_metric("media_lookup_failures")
+            self._increment_metric("media_lookup_failures", db=db)
             logger.error(f"Error querying YouTube API: {e}")
             return None
 
-    def _increment_metric(self, name: str) -> None:
+    def _increment_metric(self, name: str, db: Optional[Any] = None) -> None:
         """Saves metric increment directly to database."""
         try:
+            if db is not None:
+                from src.services.metrics_service import MetricsService
+                MetricsService().increment(db, name, source="MediaEnrichmentService")
+                return
+                
             from src.database.database import SessionLocal
             from src.services.metrics_service import MetricsService
-            db = SessionLocal()
+            db_new = SessionLocal()
             try:
-                MetricsService().increment(db, name, source="MediaEnrichmentService")
-                db.commit()
+                MetricsService().increment(db_new, name, source="MediaEnrichmentService")
+                db_new.commit()
             finally:
-                db.close()
+                db_new.close()
         except Exception as e:
             logger.error(f"Failed to record media metrics: {e}")
