@@ -72,6 +72,11 @@ class Event(Base, TimestampMixin):
         default=False, 
         nullable=False
     )
+    published: Mapped[bool] = mapped_column(
+        Boolean, 
+        default=False, 
+        nullable=False
+    )
 
     # Event Deduplication & Engine Fields
     source_count: Mapped[int] = mapped_column(
