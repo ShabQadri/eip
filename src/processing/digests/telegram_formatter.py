@@ -125,7 +125,7 @@ class TelegramFormatter:
             else:
                 headline_prefix = "🎬 "
                 
-        header_line = f"{idx}. {headline_prefix}*{escaped_title}*"
+        header_line = f"{idx}\\. {headline_prefix}*{escaped_title}*"
         
         block = f"{header_line}\n\n{body_content}"
         
