@@ -229,7 +229,7 @@ class SchedulerService:
             for event in events_to_enrich:
                 try:
                     if not event.tmdb_id:
-                        tmdb_res = await enricher.search_tmdb(event.canonical_title, event.event_type)
+                        tmdb_res = await enricher.search_tmdb(event.canonical_title, event.event_type, db=db)
                         if tmdb_res:
                             event.tmdb_id = tmdb_res.get("tmdb_id")
                             history = list(event.event_history_json or [])
@@ -285,7 +285,7 @@ class SchedulerService:
                                 break
                                 
                         if not trailer_url:
-                            trailer_url = await enricher.search_official_youtube_trailer(event.canonical_title)
+                            trailer_url = await enricher.search_official_youtube_trailer(event.canonical_title, db=db)
                             
                         stories.append({
                             "event": event,
@@ -433,7 +433,7 @@ class SchedulerService:
             for event in events_to_enrich:
                 try:
                     if not event.tmdb_id:
-                        tmdb_res = await enricher.search_tmdb(event.canonical_title, event.event_type)
+                        tmdb_res = await enricher.search_tmdb(event.canonical_title, event.event_type, db=db)
                         if tmdb_res:
                             event.tmdb_id = tmdb_res.get("tmdb_id")
                             history = list(event.event_history_json or [])
@@ -481,7 +481,7 @@ class SchedulerService:
                             break
                             
                     if not trailer_url:
-                        trailer_url = await enricher.search_official_youtube_trailer(event.canonical_title)
+                        trailer_url = await enricher.search_official_youtube_trailer(event.canonical_title, db=db)
 
                     # Find artwork
                     image_url = None
